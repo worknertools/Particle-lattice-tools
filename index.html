@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Type play</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>描边轮廓复刻 Pro - Outline Studio Professional</title>
+    <style>
+        :root { --line-color: #333; --bg-ui: #f0f0f0; }
+        body { 
+            background: var(--bg-ui); color: #333; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; padding: 0; display: flex; width: 100vw; height: 100vh; overflow: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .sidebar {
+            width: 360px; height: 100vh; 
+            background: #ffffff; color: #333;
+            display: flex; flex-direction: column; padding: 0; box-sizing: border-box;
+            z-index: 10; flex-shrink: 0;
+        }
+
+        .sidebar-content {
+            flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 20px;
+            padding: 30px 25px; scrollbar-width: none;
+        }
+        .sidebar-content::-webkit-scrollbar { display: none; }
+
+        .panel { display: flex; flex-direction: column; gap: 20px; } 
+        .ctrl { display: flex; flex-direction: column; gap: 8px; } 
+
+        .ctrl label { 
+            font-size: 11px; color: #777; display: flex; justify-content: space-between;
+            align-items: center; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .ratio-wrapper { display: flex; gap: 10px; align-items: center; }
+        .ratio-text { 
+            cursor: pointer; font-size: 10px; opacity: 0.3; transition: opacity 0.2s; color: #000; font-weight: bold;
+        }
+        .ratio-text.active { opacity: 1; } 
+
+        .file-input-wrapper {
+            position: relative; display: flex; align-items: center; 
+            background: #000; border: 1px solid #000;
+            justify-content: center; box-sizing: border-box;
+        }
+        .file-input-container {
+            padding: 12px; font-size: 11px; flex: 1; cursor: pointer; 
+            color: #fff; text-align: center; text-transform: uppercase;
+        }
+        .clear-btn {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            color: #fff; cursor: pointer; font-size: 14px; font-weight: bold;
+            padding: 5px; line-height: 1; display: none; transition: opacity 0.2s;
+        }
+        .clear-btn:hover { opacity: 0.6; }
+        
+        .btn-white {
+            background: #000; color: #fff; border: none; padding: 12px; 
+            font-size: 10px; cursor: pointer; text-transform: uppercase;
+            transition: opacity 0.2s; box-sizing: border-box;
+        }
+        .btn-white:hover { opacity: 0.8; }
+
+        .btn-random {
+            background: #e0e0e0; border: 1px solid #ccc; padding: 12px; 
+            font-size: 10px; cursor: pointer; text-transform: uppercase;
+            grid-column: 1 / 4; margin-top: 5px; box-sizing: border-box;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 2px; background: #ddd; margin: 4px 0 16px 0; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: #333; cursor: pointer;
+        }
+
+        .select-input {
+            width: 100%; padding: 8px; border-radius: 0; border: 1px solid #ccc; 
+            font-size: 11px; font-family: inherit; margin-bottom: 8px; background: #fff;
+            outline: none; cursor: pointer;
+        }
+
+        .color-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
+        .bg-ctrl-group { 
+            display: flex; background: #fff; height: 24px; box-sizing: border-box;
+            align-items: center; width: 100%; border: 1px solid #ccc; overflow: hidden;
+        }
+        .color-block { width: 30px; height: 100%; cursor: pointer; border-right: 1px solid #eee; }
+        
+        .hex-display { 
+            flex: 1; text-align: center; border: none; font-size: 10px; 
+            outline: none; background: transparent; min-width: 0; width: 100%;
+        }
+
+        .footer-text { 
+            padding: 25px 0; text-align: center; 
+            font-size: 9px; color: #bbb; letter-spacing: 1px;
+        }
+
+        .canvas-area { 
+            flex: 1; background: #ffffff; display: flex; 
+            align-items: center; justify-content: center; position: relative; overflow: hidden; 
+        }
+        
+        canvas { 
+            background: #f0f0f0;
+        }
+        #upload { display: none; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-content">
+        <div class="panel">
+            <div class="ctrl">
+                <label>
+                    1. 图像源 (IMAGE SOURCE)
+                    <div class="ratio-wrapper">
+                        <span class="ratio-text" data-ratio="3/4">3:4</span>
+                        <span class="ratio-text active" data-ratio="full">满屏</span>
+                    </div>
+                </label>
+                <div class="file-input-wrapper">
+                    <div class="file-input-container" onclick="document.getElementById('upload').click()" id="fileNameDisplay">上传图片 UPLOAD</div>
+                    <div class="clear-btn" id="clearImageBtn" onclick="clearImage(event)">✕</div>
+                </div>
+                <input type="file" id="upload" accept="image/*">
+            </div>
+
+            <div class="ctrl">
+                <label>2. 调色盘 (PALETTE)</label>
+                <div class="color-row">
+                    <div class="ctrl">
+                        <label>油墨 (INK)</label>
+                        <div class="bg-ctrl-group">
+                            <input type="color" id="colorInk" value="#00c080" style="display:none" oninput="updateColor('Ink')">
+                            <div id="blockInk" class="color-block" style="background-color: #00c080;" onclick="document.getElementById('colorInk').click()"></div>
+                            <input type="text" class="hex-display" id="hexInk" value="#00C080" oninput="handleHexInput('Ink')">
+                        </div>
+                    </div>
+                    <div class="ctrl">
+                        <label>纸张 (PAPER)</label>
+                        <div class="bg-ctrl-group">
+                            <input type="color" id="colorPaper" value="#f5f5f5" style="display:none" oninput="updateColor('Paper')">
+                            <div id="blockPaper" class="color-block" style="background-color: #f5f5f5;" onclick="document.getElementById('colorPaper').click()"></div>
+                            <input type="text" class="hex-display" id="hexPaper" value="#F5F5F5" oninput="handleHexInput('Paper')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ctrl">
+                <label>3. 图像参数 (PARAMETERS)</label>
+
+                <label>算法模式 MODE</label>
+                <select id="modeSelect" class="select-input">
+                    <option value="standard">标准像素抖动 (Standard)</option>
+                    <option value="vector" selected>高级矢量排线 (Vector)</option>
+                    <option value="noise">复古噪点版画 (Noise)</option>
+                </select>
+
+                <div id="exposureGroup" class="ctrl">
+                    <label>明暗细节 EXPOSURE <span id="v-exposure">30</span></label>
+                    <input type="range" id="exposure" min="-100" max="100" step="1" value="30">
+                </div>
+
+                <div id="contrastGroup" class="ctrl" style="display: flex;">
+                    <label>对比度 CONTRAST <span id="v-contrast">30</span></label>
+                    <input type="range" id="contrast" min="-100" max="100" step="1" value="30">
+                </div>
+
+                <div id="thicknessGroup" class="ctrl" style="display: none;">
+                    <label>像素粗细 THICKNESS <span id="v-thickness">1</span></label>
+                    <input type="range" id="thickness" min="1" max="16" step="1" value="1">
+                </div>
+
+                <div id="noiseGroup" class="ctrl" style="display: none;">
+                    <label>明暗阈值 THRESHOLD <span id="v-threshold">150</span></label>
+                    <input type="range" id="threshold" min="0" max="255" step="1" value="150">
+                    
+                    <label>噪点颗粒度 NOISE <span id="v-noiseLevel">125</span></label>
+                    <input type="range" id="noiseLevel" min="0" max="255" step="1" value="125">
+                </div>
+
+                <label>画面缩放 ZOOM <span id="v-zoom">1.0</span></label>
+                <input type="range" id="zoom" min="0.5" max="2.0" step="0.05" value="1.0">
+            </div>
+
+            <div class="ctrl">
+                <label>4. 导出 (EXPORT)</label>
+                <div class="color-row" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <button class="btn-white" onclick="downloadImage('jpeg', this)">JPG</button>
+                    <button class="btn-white" onclick="downloadImage('png', this)">PNG</button>
+                    <button class="btn-white" onclick="downloadSVG(this)">SVG</button>
+                    <button class="btn-random" onclick="randomPalette()">近似色彩效果</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer-text">2026 &copy;Design by Type Play Studio</div>
+</div>
+
+<div class="canvas-area" id="canvasArea">
+    <canvas id="mainCanvas"></canvas>
+</div>
+
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d', {willReadFrequently: true});
+    let imgSource = null;
+    let needsUpdate = false;
+    let ratioMode = 'full'; 
+    let currentRatio = 1; 
+
+    const offCanvas = document.createElement('canvas');
+    const offCtx = offCanvas.getContext('2d', {willReadFrequently: true});
+
+    document.querySelectorAll('input[type="range"]').forEach(input => {
+        input.addEventListener('input', () => {
+            const display = document.getElementById('v-' + input.id);
+            if(display) display.innerText = input.value;
+            needsUpdate = true;
+        });
+    });
+
+    document.getElementById('modeSelect').addEventListener('change', (e) => {
+        const mode = e.target.value;
+        document.getElementById('exposureGroup').style.display = mode === 'noise' ? 'none' : 'flex';
+        document.getElementById('contrastGroup').style.display = mode === 'vector' ? 'flex' : 'none';
+        document.getElementById('noiseGroup').style.display = mode === 'noise' ? 'flex' : 'none';
+        document.getElementById('thicknessGroup').style.display = mode === 'standard' ? 'flex' : 'none';
+        needsUpdate = true;
+    });
+
+    document.querySelectorAll('.ratio-text').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.ratio-text').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            ratioMode = btn.dataset.ratio;
+            resizeCanvas();
+        };
+    });
+
+    document.getElementById('upload').onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+            const img = new Image();
+            img.decoding = 'sync'; 
+            img.onload = () => {
+                imgSource = img;
+                URL.revokeObjectURL(img.src);
+                
+                let fileName = file.name;
+                const dotIdx = fileName.lastIndexOf('.');
+                if (dotIdx > 0) fileName = fileName.substring(0, dotIdx);
+                if (fileName.length > 8) fileName = fileName.substring(0, 8) + '...';
+                
+                document.getElementById('fileNameDisplay').innerText = fileName;
+                document.getElementById('clearImageBtn').style.display = 'block';
+
+                resizeCanvas();
+                needsUpdate = true;
+            };
+            img.src = URL.createObjectURL(file);
+        }
+        e.target.value = '';
+    };
+
+    function clearImage(e) {
+        if (e) e.stopPropagation(); 
+        imgSource = null;
+        document.getElementById('upload').value = '';
+        document.getElementById('fileNameDisplay').innerText = '上传图片 UPLOAD';
+        document.getElementById('clearImageBtn').style.display = 'none';
+        
+        needsUpdate = true; 
+    }
+
+    function updateColor(type) {
+        const val = document.getElementById('color' + type).value;
+        document.getElementById('hex' + type).value = val.toUpperCase();
+        document.getElementById('block' + type).style.backgroundColor = val;
+        needsUpdate = true;
+    }
+
+    function handleHexInput(type) {
+        let val = document.getElementById('hex' + type).value.trim();
+        if (val.length > 0 && val[0] !== '#') val = '#' + val;
+        let validHex = null;
+        if (/^#[0-9A-Fa-f]{6}$/.test(val)) validHex = val;
+        else if (/^#[0-9A-Fa-f]{3}$/.test(val)) validHex = '#' + val[1]+val[1] + val[2]+val[2] + val[3]+val[3];
+
+        if (validHex) {
+            document.getElementById('color' + type).value = validHex;
+            document.getElementById('block' + type).style.backgroundColor = validHex;
+            needsUpdate = true;
+        }
+    }
+
+    // 严谨兼容的 HSL 转 HEX，不使用实验性 API，保障全平台/全浏览器正常运作
+    function hslToHex(h, s, l) {
+        l /= 100;
+        const a = s * Math.min(l, 1 - l) / 100;
+        const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            const hex = Math.round(255 * color).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        return ('#' + f(0) + f(8) + f(4)).toUpperCase();
+    }
+
+    // 生成丰富一些的近似色彩效果算法
+    function randomPalette() {
+        const baseHue = Math.floor(Math.random() * 360);
+        const sign = Math.random() < 0.5 ? 1 : -1;
+        const hueOffset = sign * (Math.floor(Math.random() * 41) + 20);
+        const paperHue = (baseHue + hueOffset + 360) % 360;
+
+        const inkSat = Math.floor(Math.random() * 41) + 60;
+        const paperSat = Math.floor(Math.random() * 41) + 60;
+
+        // 控制亮度：确保图形(油墨)颜色比底色(纸张)深
+        const inkLight = Math.floor(Math.random() * 31) + 10;
+        const paperLight = Math.floor(Math.random() * 31) + 65;
+
+        document.getElementById('colorInk').value = hslToHex(baseHue, inkSat, inkLight);
+        document.getElementById('colorPaper').value = hslToHex(paperHue, paperSat, paperLight);
+        
+        updateColor('Ink');
+        updateColor('Paper');
+    }
+
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : { r: 0, g: 0, b: 0 };
+    }
+
+    function resizeCanvas() {
+        const area = document.getElementById('canvasArea');
+        const padding = ratioMode === 'full' ? 0 : 60;
+        const maxW = area.clientWidth - padding;
+        const maxH = area.clientHeight - padding;
+        
+        if (ratioMode === 'full') currentRatio = maxW / maxH;
+        else {
+            const parts = ratioMode.split('/');
+            currentRatio = parseFloat(parts[0]) / parseFloat(parts[1]);
+        }
+
+        let w = maxW; let h = w / currentRatio;
+        if (h > maxH) { h = maxH; w = h * currentRatio; }
+
+        canvas.style.width = Math.floor(w) + 'px';
+        canvas.style.height = Math.floor(h) + 'px';
+        needsUpdate = true;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function processPixels(imageData, width, height, isSvgMode = false, transparentPaper = false) {
+        const data = imageData.data;
+        const mode = document.getElementById('modeSelect').value;
+        const exposure = parseInt(document.getElementById('exposure').value);
+        const cont = parseInt(document.getElementById('contrast').value);
+        const threshold = parseInt(document.getElementById('threshold').value);
+        const noiseLevel = parseInt(document.getElementById('noiseLevel').value);
+        const darkRGB = hexToRgb(document.getElementById('colorInk').value);
+        const lightRGB = hexToRgb(document.getElementById('colorPaper').value);
+        
+        let isInkArray = isSvgMode ? new Uint8Array(width * height) : null;
+
+        if (mode === 'standard') {
+            const thickness = parseInt(document.getElementById('thickness').value) || 1;
+            
+            if (thickness === 1) {
+                let grayData = new Float32Array(width * height);
+                for (let i = 0; i < width * height; i++) {
+                    let idx = i * 4;
+                    let grayValue = 0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2] + exposure;
+                    grayData[i] = Math.min(255, Math.max(0, grayValue));
+                }
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let i = y * width + x;
+                        let oldPixel = grayData[i];
+                        let newPixel = oldPixel < 128 ? 0 : 255;
+                        grayData[i] = newPixel;
+                        let err = oldPixel - newPixel;
+                        if (x + 1 < width) grayData[i + 1] += err * (7 / 16);
+                        if (y + 1 < height) {
+                            if (x - 1 >= 0) grayData[i + width - 1] += err * (3 / 16);
+                            grayData[i + width] += err * (5 / 16);
+                            if (x + 1 < width) grayData[i + width + 1] += err * (1 / 16);
+                        }
+                    }
+                }
+                for (let i = 0; i < width * height; i++) {
+                    let isDark = grayData[i] === 0;
+                    if (isSvgMode) isInkArray[i] = isDark ? 1 : 0;
+                    let idx = i * 4;
+                    data[idx] = isDark ? darkRGB.r : lightRGB.r;
+                    data[idx+1] = isDark ? darkRGB.g : lightRGB.g;
+                    data[idx+2] = isDark ? darkRGB.b : lightRGB.b;
+                    data[idx+3] = (transparentPaper && !isDark) ? 0 : 255;
+                }
+            } else {
+                let tW = Math.ceil(width / thickness);
+                let tH = Math.ceil(height / thickness);
+                let grayData = new Float32Array(tW * tH);
+                for (let y = 0; y < tH; y++) {
+                    for (let x = 0; x < tW; x++) {
+                        let sum = 0, count = 0;
+                        for (let by = 0; by < thickness; by++) {
+                            for (let bx = 0; bx < thickness; bx++) {
+                                let py = y * thickness + by;
+                                let px = x * thickness + bx;
+                                if (px < width && py < height) {
+                                    let idx = (py * width + px) * 4;
+                                    sum += 0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2] + exposure;
+                                    count++;
+                                }
+                            }
+                        }
+                        grayData[y * tW + x] = Math.min(255, Math.max(0, sum / count));
+                    }
+                }
+                for (let y = 0; y < tH; y++) {
+                    for (let x = 0; x < tW; x++) {
+                        let i = y * tW + x;
+                        let oldPixel = grayData[i];
+                        let newPixel = oldPixel < 128 ? 0 : 255;
+                        grayData[i] = newPixel;
+                        let err = oldPixel - newPixel;
+                        if (x + 1 < tW) grayData[i + 1] += err * (7 / 16);
+                        if (y + 1 < tH) {
+                            if (x - 1 >= 0) grayData[i + tW - 1] += err * (3 / 16);
+                            grayData[i + tW] += err * (5 / 16);
+                            if (x + 1 < tW) grayData[i + tW + 1] += err * (1 / 16);
+                        }
+                    }
+                }
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let tx = Math.floor(x / thickness);
+                        let ty = Math.floor(y / thickness);
+                        let i = ty * tW + tx;
+                        let isDark = grayData[i] === 0;
+                        let flatIndex = y * width + x;
+                        if (isSvgMode) isInkArray[flatIndex] = isDark ? 1 : 0;
+                        let idx = flatIndex * 4;
+                        data[idx] = isDark ? darkRGB.r : lightRGB.r;
+                        data[idx+1] = isDark ? darkRGB.g : lightRGB.g;
+                        data[idx+2] = isDark ? darkRGB.b : lightRGB.b;
+                        data[idx+3] = (transparentPaper && !isDark) ? 0 : 255;
+                    }
+                }
+            }
+        } else if (mode === 'vector') {
+            const factor = (259 * (cont + 255)) / (255 * (259 - cont));
+            let floatPixels = new Float32Array(width * height);
+            for (let i = 0; i < width * height; i++) {
+                let idx = i * 4;
+                let luma = data[idx]*0.299 + data[idx+1]*0.587 + data[idx+2]*0.114;
+                luma = factor * (luma - 128) + 128 + exposure;
+                floatPixels[i] = Math.max(0, Math.min(255, luma));
+            }
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let i = y * width + x;
+                    let oldPixel = floatPixels[i];
+                    let newPixel = oldPixel < 128 ? 0 : 255;
+                    let err = oldPixel - newPixel;
+                    if (x + 1 < width) floatPixels[i + 1] += err * (7 / 16);
+                    if (y + 1 < height) {
+                        if (x - 1 >= 0) floatPixels[i + width - 1] += err * (3 / 16);
+                        floatPixels[i + width] += err * (5 / 16);
+                        if (x + 1 < width) floatPixels[i + width + 1] += err * (1 / 16);
+                    }
+                    let isDark = newPixel === 0;
+                    if (isSvgMode) isInkArray[i] = isDark ? 1 : 0;
+                    let idx = i * 4;
+                    data[idx] = isDark ? darkRGB.r : lightRGB.r;
+                    data[idx+1] = isDark ? darkRGB.g : lightRGB.g;
+                    data[idx+2] = isDark ? darkRGB.b : lightRGB.b;
+                    data[idx+3] = (transparentPaper && !isDark) ? 0 : 255;
+                }
+            }
+        } else if (mode === 'noise') {
+            for (let i = 0; i < width * height; i++) {
+                let idx = i * 4;
+                let luma = data[idx]*0.299 + data[idx+1]*0.587 + data[idx+2]*0.114;
+                let randomNoise = (Math.random() - 0.5) * noiseLevel;
+                let isDark = (luma + randomNoise) < threshold;
+                if (isSvgMode) isInkArray[i] = isDark ? 1 : 0;
+                data[idx] = isDark ? darkRGB.r : lightRGB.r;
+                data[idx+1] = isDark ? darkRGB.g : lightRGB.g;
+                data[idx+2] = isDark ? darkRGB.b : lightRGB.b;
+                data[idx+3] = (transparentPaper && !isDark) ? 0 : 255;
+            }
+        }
+        return isInkArray;
+    }
+
+    function renderEffect() {
+        const h = 1200;
+        const w = Math.floor(1200 * currentRatio);
+        
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+        ctx.clearRect(0, 0, w, h);
+        
+        const paperColor = document.getElementById('colorPaper').value;
+
+        if (!imgSource) {
+            ctx.fillStyle = paperColor;
+            ctx.fillRect(0, 0, w, h);
+            return;
+        }
+
+        const sRatio = imgSource.width / imgSource.height;
+        const cRatio = w / h;
+        let dw, dh, dx, dy;
+        if(sRatio > cRatio) {
+            dw = w; dh = Math.round(w / sRatio); dx = 0; dy = (h - dh) / 2;
+        } else {
+            dh = h; dw = Math.round(h * sRatio); dx = (w - dw) / 2; dy = 0;
+        }
+
+        offCanvas.width = dw;
+        offCanvas.height = dh;
+        offCtx.fillStyle = '#ffffff';
+        offCtx.fillRect(0, 0, dw, dh);
+        offCtx.drawImage(imgSource, 0, 0, dw, dh);
+
+        const imageData = offCtx.getImageData(0, 0, dw, dh);
+        processPixels(imageData, dw, dh, false, false);
+        offCtx.putImageData(imageData, 0, 0);
+
+        ctx.fillStyle = paperColor;
+        ctx.fillRect(0, 0, w, h);
+
+        const zoom = parseFloat(document.getElementById('zoom').value);
+        ctx.save();
+        // ★ 核心对齐：预览时同样强制关闭抗锯齿，使缩放的预览效果与高清导出的所见即所得完全对应
+        ctx.imageSmoothingEnabled = false; 
+        ctx.translate(w/2, h/2);
+        ctx.scale(zoom, zoom); 
+        ctx.translate(-w/2, -h/2);
+        ctx.drawImage(offCanvas, dx, dy);
+        ctx.restore();
+    }
+
+    function loop() {
+        if (needsUpdate) {
+            renderEffect();
+            needsUpdate = false;
+        }
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // 高端无损 SVG 导出引擎（基于精准的横向扫描压缩算法生成单节点高阶矢量）
+    function downloadSVG(btn) {
+        setTimeout(() => {
+            // ★ 所见即所得基础：使用完全相同的基础内部分辨率
+            const ph = 1200;
+            const pw = Math.floor(1200 * currentRatio);
+            
+            const inkColor = document.getElementById('colorInk').value;
+            const paperColor = document.getElementById('colorPaper').value;
+            const zoom = parseFloat(document.getElementById('zoom').value);
+
+            let dx = 0, dy = 0;
+            let svgPathsStr = '';
+
+            if (imgSource) {
+                const sRatio = imgSource.width / imgSource.height;
+                const cRatio = pw / ph;
+                let dw, dh;
+                if(sRatio > cRatio) {
+                    dw = pw; dh = Math.round(pw / sRatio); dx = 0; dy = (ph - dh) / 2;
+                } else {
+                    dh = ph; dw = Math.round(ph * sRatio); dx = (pw - dw) / 2; dy = 0;
+                }
+
+                const expOffCanvas = document.createElement('canvas');
+                expOffCanvas.width = dw;
+                expOffCanvas.height = dh;
+                const expOffCtx = expOffCanvas.getContext('2d', {willReadFrequently: true});
+
+                expOffCtx.fillStyle = '#ffffff';
+                expOffCtx.fillRect(0, 0, dw, dh);
+                expOffCtx.drawImage(imgSource, 0, 0, dw, dh);
+
+                const imageData = expOffCtx.getImageData(0, 0, dw, dh);
+                const isInkArray = processPixels(imageData, dw, dh, true, false);
+                
+                let d = "";
+                for (let y = 0; y < dh; y++) {
+                    let runStart = -1;
+                    for (let x = 0; x < dw; x++) {
+                        const isInk = isInkArray[y * dw + x];
+                        if (isInk) {
+                            if (runStart === -1) runStart = x;
+                        } else {
+                            if (runStart !== -1) {
+                                d += `M${runStart},${y} h${x - runStart} v1 h-${x - runStart} Z `;
+                                runStart = -1;
+                            }
+                        }
+                    }
+                    if (runStart !== -1) {
+                        d += `M${runStart},${y} h${dw - runStart} v1 h-${dw - runStart} Z `;
+                    }
+                }
+                if (d.length > 0) {
+                    svgPathsStr = `<path fill="${inkColor}" d="${d}" />`;
+                }
+            }
+
+            // 完美复刻的缩放和偏移矢量嵌套矩阵
+            let pathsStr = svgPathsStr.length > 0 
+                ? `<g transform="translate(${pw/2}, ${ph/2}) scale(${zoom}) translate(${-pw/2}, ${-ph/2}) translate(${dx}, ${dy})">
+        ${svgPathsStr}
+    </g>` 
+                : '';
+
+            let svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${pw} ${ph}" width="${pw}" height="${ph}">
+    <rect width="100%" height="100%" fill="${paperColor}" />
+    ${pathsStr}
+</svg>`;
+
+            const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+            const link = document.createElement('a');
+            link.download = `Photocopy_Art_Vector_${Date.now()}.svg`;
+            link.href = URL.createObjectURL(blob);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000); 
+
+        }, 50);
+    }
+
+    // A3 高清引擎导出 (JPG自带纸张底色，PNG自带纯透明底色) 
+    // ★ 关键重构：基于 100% 画布效果比例放大，拒绝错乱细分网点
+    function downloadImage(format, btn) {
+        setTimeout(() => {
+            const isPng = (format === 'png');
+
+            // 1. 基准分辨率采用与画布相同的底层分辨率以锁定 100% 一致效果
+            const pw = Math.floor(1200 * currentRatio);
+            const ph = 1200;
+
+            // 2. 将分辨率成比例扩展至 A3 超高清规格进行导出，保证极致清晰度
+            const EXPORT_SCALE = 4; // 1200 * 4 = 4800 高清分辨率
+            const expW = pw * EXPORT_SCALE;
+            const expH = ph * EXPORT_SCALE;
+
+            const expCanvas = document.createElement('canvas');
+            expCanvas.width = expW;
+            expCanvas.height = expH;
+            const expCtx = expCanvas.getContext('2d');
+
+            // ★ 核心：关闭图像平滑，使得粗糙点阵、锯齿和颗粒等比例被无损锐利放大，达成绝对的所见即所得
+            expCtx.imageSmoothingEnabled = false;
+
+            const paperColor = document.getElementById('colorPaper').value;
+
+            if (!isPng) {
+                expCtx.fillStyle = paperColor;
+                expCtx.fillRect(0, 0, expW, expH);
+            }
+
+            if (imgSource) {
+                // 完全基于画布比例进行处理映射
+                const sRatio = imgSource.width / imgSource.height;
+                const cRatio = pw / ph;
+                let dw, dh, dx, dy;
+                if(sRatio > cRatio) {
+                    dw = pw; dh = Math.round(pw / sRatio); dx = 0; dy = (ph - dh) / 2;
+                } else {
+                    dh = ph; dw = Math.round(ph * sRatio); dx = (pw - dw) / 2; dy = 0;
+                }
+                
+                const expOffCanvas = document.createElement('canvas');
+                expOffCanvas.width = dw;
+                expOffCanvas.height = dh;
+                const expOffCtx = expOffCanvas.getContext('2d', {willReadFrequently: true});
+
+                expOffCtx.fillStyle = '#ffffff';
+                expOffCtx.fillRect(0, 0, dw, dh);
+                expOffCtx.drawImage(imgSource, 0, 0, dw, dh);
+
+                // 根据是否导出 PNG 传递 TransparentPaper 参数，运算像素数与画布保持绝对一致
+                const imageData = expOffCtx.getImageData(0, 0, dw, dh);
+                processPixels(imageData, dw, dh, false, isPng);
+                expOffCtx.putImageData(imageData, 0, 0);
+
+                const zoom = parseFloat(document.getElementById('zoom').value);
+                
+                expCtx.save();
+                // 在最终的高分辨率画布上，先进行全局的缩放倍率放大
+                expCtx.scale(EXPORT_SCALE, EXPORT_SCALE);
+                
+                // 执行与画布预览完全一致的偏移和位移
+                expCtx.translate(pw/2, ph/2);
+                expCtx.scale(zoom, zoom);
+                expCtx.translate(-pw/2, -ph/2);
+                
+                expCtx.drawImage(expOffCanvas, dx, dy);
+                expCtx.restore();
+            }
+
+            expCanvas.toBlob(blob => {
+                if (blob) {
+                    const link = document.createElement('a');
+                    link.download = `Photocopy_Art_HD_${Date.now()}.${isPng ? 'png' : 'jpg'}`;
+                    link.href = URL.createObjectURL(blob);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(link.href), 1000); 
+                }
+            }, `image/${format}`, 1.0);
+
+        }, 50);
+    }
+</script>
+</body>
+</html>
+    
+  </body>
+  
+</html>
